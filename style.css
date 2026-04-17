@@ -192,17 +192,19 @@
   --title-spacing: 0.05em;
 }
 
-body {
+#reversi-screen {
   font-family: var(--font-family);
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding: 1rem;
+  border-radius: 10px;
   transition: background 0.4s, color 0.4s;
 }
+
+#reversi-screen.hidden { display: none; }
 
 #app {
   width: 100%;
@@ -211,6 +213,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  margin: 0 auto;
 }
 
 header {
@@ -1141,8 +1144,7 @@ select:focus {
 }
 
 /* Shrek theme extras */
-[data-theme="shrek"] body,
-[data-theme="shrek"] {
+[data-theme="shrek"] #reversi-screen {
   background: linear-gradient(180deg, #1a2e0a 0%, #0f1f06 40%, #1a1508 100%);
 }
 [data-theme="shrek"] h1 {
@@ -1210,8 +1212,7 @@ select:focus {
 }
 
 /* Cat in the Hat theme extras */
-[data-theme="cat"] body,
-[data-theme="cat"] {
+[data-theme="cat"] #reversi-screen {
   background:
     repeating-linear-gradient(
       45deg,

@@ -3,116 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reversi</title>
+  <title>Copilot Arcade</title>
+  <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Boogaloo&family=Fredoka+One&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23222'/><circle cx='50' cy='50' r='38' fill='%23fff'/><path d='M50 12A38 38 0 0 1 50 88' fill='%23222'/></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Boogaloo&family=Fredoka+One&family=VT323&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='5' y='5' width='90' height='90' rx='10' fill='%23222'/><rect x='15' y='20' width='70' height='45' fill='%2300f0ff'/></svg>">
 </head>
 <body>
-  <div id="app">
-    <header>
-      <h1>Reversi</h1>
-      <div id="controls">
-        <div class="control-group">
-          <label for="mode-select">Mode</label>
-          <select id="mode-select">
-            <option value="ai">vs Computer</option>
-            <option value="local">2 Players</option>
-            <option value="online">Online (P2P)</option>
-          </select>
-        </div>
-        <div class="control-group" id="difficulty-group">
-          <label for="difficulty-select">Difficulty</label>
-          <select id="difficulty-select">
-            <option value="1">Easy</option>
-            <option value="3" selected>Medium</option>
-            <option value="5">Hard</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="variant-select">Variant</label>
-          <select id="variant-select">
-            <optgroup label="Classic">
-              <option value="standard">Standard</option>
-              <option value="randomstart">Random Start</option>
-              <option value="boss">Boss Mode</option>
-            </optgroup>
-            <optgroup label="Board">
-              <option value="obstacles">Obstacles</option>
-              <option value="fogofwar">Fog of War</option>
-              <option value="shrinking">Shrinking Board</option>
-            </optgroup>
-            <optgroup label="Rules">
-              <option value="vanish">Vanish</option>
-              <option value="powerups">Powerups</option>
-              <option value="cascade">Cascade</option>
-              <option value="plague">Plague</option>
-              <option value="thieves">Thieves</option>
-              <option value="kingofhill">King of the Hill</option>
-            </optgroup>
-            <optgroup label="Timed">
-              <option value="blitz">Blitz</option>
-              <option value="speed">Speed</option>
-            </optgroup>
-          </select>
-        </div>
-        <div class="control-group" id="lifespan-group" style="display:none">
-          <label for="lifespan-select">Disc Life</label>
-          <select id="lifespan-select">
-            <option value="4">4 moves</option>
-            <option value="6">6 moves</option>
-            <option value="8" selected>8 moves</option>
-            <option value="10">10 moves</option>
-            <option value="15">15 moves</option>
-            <option value="20">20 moves</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="theme-select">Theme</label>
-          <select id="theme-select">
-            <option value="classic">Classic</option>
-            <option value="retro">8-Bit</option>
-            <option value="futuristic">Futuristic</option>
-            <option value="shrek">Shrek</option>
-            <option value="cat">Cat in the Hat</option>
-          </select>
-        </div>
-        <button id="new-game-btn">New Game</button>
+  <div id="arcade">
+    <div class="cabinet">
+      <div class="marquee">
+        <h1>COPILOT&nbsp;ARCADE</h1>
+        <div class="marquee-stars">★ ★ ★</div>
       </div>
-    </header>
+      <div class="bezel">
+        <div class="screen">
 
-    <div id="game-container">
-      <div id="scoreboard">
-        <div class="score-card" id="black-score-card">
-          <div class="disc-icon black"></div>
-          <div class="score-info">
-            <span class="player-label">Black</span>
-            <span class="score-value" id="black-score">2</span>
-            <span class="timer-value hidden" id="black-timer"></span>
+          <!-- Menu Screen -->
+          <div id="menu-screen" class="game-panel">
+            <div class="crt-title">SELECT GAME</div>
+            <div class="crt-subtitle">Insert coin. Pick a cartridge. Play.</div>
+            <div id="game-grid"></div>
+            <div class="crt-footer blink-slow">◀ USE ANY BUTTON ▶</div>
           </div>
-        </div>
-        <div id="turn-indicator">
-          <div class="disc-icon small" id="turn-disc"></div>
-          <span id="turn-text">Black's turn</span>
-        </div>
-        <div class="score-card" id="white-score-card">
-          <div class="disc-icon white"></div>
-          <div class="score-info">
-            <span class="player-label">White</span>
-            <span class="score-value" id="white-score">2</span>
-            <span class="timer-value hidden" id="white-timer"></span>
+
+          <!-- Reversi Screen (existing game) -->
+          <div id="reversi-screen" class="game-panel hidden">
+            <div id="app">
+              <header>
+                <h1>Reversi</h1>
+                <div id="controls">
+                  <div class="control-group">
+                    <label for="mode-select">Mode</label>
+                    <select id="mode-select">
+                      <option value="ai">vs Computer</option>
+                      <option value="local">2 Players</option>
+                      <option value="online">Online (P2P)</option>
+                    </select>
+                  </div>
+                  <div class="control-group" id="difficulty-group">
+                    <label for="difficulty-select">Difficulty</label>
+                    <select id="difficulty-select">
+                      <option value="1">Easy</option>
+                      <option value="3" selected>Medium</option>
+                      <option value="5">Hard</option>
+                    </select>
+                  </div>
+                  <div class="control-group">
+                    <label for="variant-select">Variant</label>
+                    <select id="variant-select">
+                      <optgroup label="Classic">
+                        <option value="standard">Standard</option>
+                        <option value="randomstart">Random Start</option>
+                        <option value="boss">Boss Mode</option>
+                      </optgroup>
+                      <optgroup label="Board">
+                        <option value="obstacles">Obstacles</option>
+                        <option value="fogofwar">Fog of War</option>
+                        <option value="shrinking">Shrinking Board</option>
+                      </optgroup>
+                      <optgroup label="Rules">
+                        <option value="vanish">Vanish</option>
+                        <option value="powerups">Powerups</option>
+                        <option value="cascade">Cascade</option>
+                        <option value="plague">Plague</option>
+                        <option value="thieves">Thieves</option>
+                        <option value="kingofhill">King of the Hill</option>
+                      </optgroup>
+                      <optgroup label="Timed">
+                        <option value="blitz">Blitz</option>
+                        <option value="speed">Speed</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div class="control-group" id="lifespan-group" style="display:none">
+                    <label for="lifespan-select">Disc Life</label>
+                    <select id="lifespan-select">
+                      <option value="4">4 moves</option>
+                      <option value="6">6 moves</option>
+                      <option value="8" selected>8 moves</option>
+                      <option value="10">10 moves</option>
+                      <option value="15">15 moves</option>
+                      <option value="20">20 moves</option>
+                    </select>
+                  </div>
+                  <div class="control-group">
+                    <label for="theme-select">Theme</label>
+                    <select id="theme-select">
+                      <option value="classic">Classic</option>
+                      <option value="retro">8-Bit</option>
+                      <option value="futuristic">Futuristic</option>
+                      <option value="shrek">Shrek</option>
+                      <option value="cat">Cat in the Hat</option>
+                    </select>
+                  </div>
+                  <button id="new-game-btn">New Game</button>
+                </div>
+              </header>
+              <div id="game-container">
+                <div id="scoreboard">
+                  <div class="score-card" id="black-score-card">
+                    <div class="disc-icon black"></div>
+                    <div class="score-info">
+                      <span class="player-label">Black</span>
+                      <span class="score-value" id="black-score">2</span>
+                      <span class="timer-value hidden" id="black-timer"></span>
+                    </div>
+                  </div>
+                  <div id="turn-indicator">
+                    <div class="disc-icon small" id="turn-disc"></div>
+                    <span id="turn-text">Black's turn</span>
+                  </div>
+                  <div class="score-card" id="white-score-card">
+                    <div class="disc-icon white"></div>
+                    <div class="score-info">
+                      <span class="player-label">White</span>
+                      <span class="score-value" id="white-score">2</span>
+                      <span class="timer-value hidden" id="white-timer"></span>
+                    </div>
+                  </div>
+                </div>
+                <div id="board-wrapper">
+                  <div id="board"></div>
+                </div>
+                <div id="message-bar" class="hidden"></div>
+                <div id="net-status" class="hidden"></div>
+              </div>
+            </div>
           </div>
+
+          <!-- Generic screen for other games -->
+          <div id="generic-screen" class="game-panel hidden">
+            <div id="generic-mount"></div>
+          </div>
+
+        </div>
+        <div class="scanlines"></div>
+        <div class="crt-glare"></div>
+      </div>
+      <div class="control-panel">
+        <button id="back-btn" class="arcade-btn hidden">◀ MENU</button>
+        <span class="brand">COPILOT&nbsp;ARCADE</span>
+        <span class="coins">◉ CREDITS: <span id="credit-count">99</span></span>
+      </div>
+      <div class="joystick-row">
+        <div class="joystick"></div>
+        <div class="arcade-buttons">
+          <span class="ab red"></span>
+          <span class="ab yellow"></span>
+          <span class="ab green"></span>
+          <span class="ab blue"></span>
         </div>
       </div>
-
-      <div id="board-wrapper">
-        <div id="board"></div>
-      </div>
-
-      <div id="message-bar" class="hidden"></div>
-      <div id="net-status" class="hidden"></div>
     </div>
   </div>
 
@@ -149,6 +193,14 @@
   </div>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="arcade.js"></script>
   <script src="game.js"></script>
+  <script src="games/snake.js"></script>
+  <script src="games/tictactoe.js"></script>
+  <script src="games/2048.js"></script>
+  <script src="games/minesweeper.js"></script>
+  <script src="games/pong.js"></script>
+  <script src="games/breakout.js"></script>
+  <script>Arcade.ready();</script>
 </body>
 </html>
