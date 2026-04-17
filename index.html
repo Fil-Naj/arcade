@@ -20,6 +20,7 @@
           <select id="mode-select">
             <option value="ai">vs Computer</option>
             <option value="local">2 Players</option>
+            <option value="online">Online (P2P)</option>
           </select>
         </div>
         <div class="control-group" id="difficulty-group">
@@ -109,9 +110,43 @@
       </div>
 
       <div id="message-bar" class="hidden"></div>
+      <div id="net-status" class="hidden"></div>
     </div>
   </div>
 
+  <div id="lobby-overlay" class="hidden">
+    <div class="lobby-card">
+      <h2>Online Multiplayer</h2>
+      <div id="lobby-intro">
+        <p>Play Reversi with a friend over the internet — no account needed. One of you hosts; the other joins with the host's code.</p>
+        <div class="lobby-buttons">
+          <button id="lobby-host-btn">Host a Game</button>
+          <button id="lobby-join-btn">Join a Game</button>
+        </div>
+        <button id="lobby-cancel-btn" class="lobby-link">Cancel</button>
+      </div>
+      <div id="lobby-host" class="hidden">
+        <p>Share this code with your opponent:</p>
+        <div class="peer-id-row">
+          <code id="lobby-host-id">connecting…</code>
+          <button id="lobby-copy-btn" type="button">Copy</button>
+        </div>
+        <p class="lobby-status" id="lobby-host-status">Starting…</p>
+        <button id="lobby-host-back" class="lobby-link">Back</button>
+      </div>
+      <div id="lobby-join" class="hidden">
+        <p>Enter the host's code:</p>
+        <input id="lobby-join-input" type="text" autocomplete="off" spellcheck="false" placeholder="room code" maxlength="64" />
+        <div class="lobby-buttons">
+          <button id="lobby-join-submit">Connect</button>
+        </div>
+        <p class="lobby-status" id="lobby-join-status"></p>
+        <button id="lobby-join-back" class="lobby-link">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

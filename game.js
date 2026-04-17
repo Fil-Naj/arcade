@@ -46,6 +46,12 @@
   let plagueInfo;
   // Cascade
   let cascadeFlips;
+  // Online P2P
+  let netRole = null;   // null | 'host' | 'guest'
+  let myColor = BLACK;  // which color the local player controls in online mode
+  let peer = null;
+  let conn = null;
+  let hostSettings = null; // guest holds settings received from host
 
 
   // === DOM Refs ===
@@ -68,7 +74,30 @@
   const blackTimerEl = document.getElementById("black-timer");
   const whiteTimerEl = document.getElementById("white-timer");
 
+  const lobbyOverlay = document.getElementById("lobby-overlay");
+  const lobbyIntro = document.getElementById("lobby-intro");
+  const lobbyHost = document.getElementById("lobby-host");
+  const lobbyJoin = document.getElementById("lobby-join");
+  const lobbyHostBtn = document.getElementById("lobby-host-btn");
+  const lobbyJoinBtn = document.getElementById("lobby-join-btn");
+  const lobbyCancelBtn = document.getElementById("lobby-cancel-btn");
+  const lobbyHostIdEl = document.getElementById("lobby-host-id");
+  const lobbyHostStatus = document.getElementById("lobby-host-status");
+  const lobbyHostBack = document.getElementById("lobby-host-back");
+  const lobbyCopyBtn = document.getElementById("lobby-copy-btn");
+  const lobbyJoinInput = document.getElementById("lobby-join-input");
+  const lobbyJoinSubmit = document.getElementById("lobby-join-submit");
+  const lobbyJoinStatus = document.getElementById("lobby-join-status");
+  const lobbyJoinBack = document.getElementById("lobby-join-back");
+  const netStatusEl = document.getElementById("net-status");
+
   // --- Theme ---
+  function isOpponentTurn() {
+    if (mode === "ai" && currentPlayer === WHITE) return true;
+    if (mode === "online" && currentPlayer !== myColor) return true;
+    return false;
+  }
+
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("reversi-theme", theme);
@@ -425,12 +454,13 @@
         if (whiteTime <= 0) { whiteTime = 0; updateTimerDisplay(); endGame("timeout"); return; }
       }
       updateTimerDisplay();
+      if (mode === "online" && netRole === "host") broadcastSnapshot();
     }, 1000);
   }
 
   function startSpeedTimer() {
     stopSpeedTimer();
-    if (mode === "ai" && currentPlayer === WHITE) return;
+    if (isOpponentTurn()) return;
     speedCountdown = SPEED_TIME;
     showMessage(speedCountdown + "...", "speed-warn");
     speedInterval = setInterval(() => {
@@ -604,9 +634,11 @@
     const decayedSet = new Set(decayedCells.map(([r, c]) => `${r},${c}`));
     const extraSet = new Set(extraCells.map(([r, c]) => `${r},${c}`));
 
-    const fogPlayer = variant === "fogofwar" ? (mode === "ai" ? BLACK : currentPlayer) : null;
+    const fogPlayer = variant === "fogofwar"
+      ? (mode === "ai" ? BLACK : (mode === "online" ? myColor : currentPlayer))
+      : null;
     const showSteals = variant === "thieves" && !gameOver && !aiThinking &&
-      !(mode === "ai" && currentPlayer === WHITE);
+      !(isOpponentTurn());
     const stealSet = showSteals ? new Set(getStealTargets(board, currentPlayer).map(([r,c]) => `${r},${c}`)) : new Set();
 
     const cells = boardEl.querySelectorAll(".cell");
@@ -627,7 +659,7 @@
       cell.classList.toggle("stealable", stealSet.has(`${r},${c}`));
 
       // Valid hints (show even in fog for gameplay)
-      const showHints = !gameOver && !aiThinking && !(mode === "ai" && currentPlayer === WHITE);
+      const showHints = !gameOver && !aiThinking && !(isOpponentTurn());
       cell.classList.toggle("valid", showHints && validSet.has(`${r},${c}`) && !fogged);
 
       if (val === WALL) {
@@ -727,6 +759,9 @@
 
   function startGame() {
     stopAllTimers();
+    // Online guest: wait for settings from host
+    if (mode === "online" && netRole === "guest") return;
+
     variant = variantSelect.value;
     vanishMode = variant === "vanish";
     powerupMode = variant === "powerups";
@@ -763,6 +798,15 @@
     render();
     if (variant === "blitz") startBlitzTimer();
     if (variant === "speed") startSpeedTimer();
+
+    if (mode === "online" && netRole === "host" && conn && conn.open) {
+      netSend({
+        type: "settings",
+        variant,
+        vanishLife,
+      });
+      broadcastSnapshot();
+    }
   }
 
   function makeMove(r, c) {
@@ -852,7 +896,7 @@
     }
 
     // Speed timer restart
-    if (variant === "speed" && !gameOver && !(mode === "ai" && currentPlayer === WHITE)) {
+    if (variant === "speed" && !gameOver && !(isOpponentTurn())) {
       startSpeedTimer();
     }
 
@@ -892,7 +936,7 @@
 
     render();
 
-    if (variant === "speed" && !gameOver && !(mode === "ai" && currentPlayer === WHITE)) startSpeedTimer();
+    if (variant === "speed" && !gameOver && !(isOpponentTurn())) startSpeedTimer();
     if (!gameOver && mode === "ai" && currentPlayer === WHITE) scheduleAiMove();
   }
 
@@ -938,39 +982,405 @@
     }
     showMessage(msg, "win");
     render();
+    if (mode === "online" && netRole === "host") broadcastSnapshot();
   }
 
   function onCellClick(r, c) {
     if (gameOver || aiThinking) return;
-    if (mode === "ai" && currentPlayer === WHITE) return;
+    if (isOpponentTurn()) return;
 
     // Thieves steal
     if (variant === "thieves" && board[r][c] === opponent(currentPlayer)) {
       const targets = getStealTargets(board, currentPlayer);
       if (targets.some(([sr, sc]) => sr === r && sc === c)) {
+        if (mode === "online" && netRole === "guest") {
+          netSend({ type: "steal", r, c });
+          return;
+        }
         makeSteal(r, c);
+        if (mode === "online" && netRole === "host") broadcastSnapshot();
         return;
       }
     }
 
     if (getFlips(board, r, c, currentPlayer).length === 0) return;
+    if (mode === "online" && netRole === "guest") {
+      netSend({ type: "move", r, c });
+      return;
+    }
     makeMove(r, c);
+    if (mode === "online" && netRole === "host") broadcastSnapshot();
   }
+
+
+  // === Online P2P Networking ===
+
+  function genRoomCode() {
+    const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+    let s = "rv-";
+    for (let i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  function netSend(msg) {
+    if (conn && conn.open) {
+      try { conn.send(msg); } catch (e) { console.error("send failed", e); }
+    }
+  }
+
+  function netStatus(text, cls) {
+    if (!netStatusEl) return;
+    if (!text) { netStatusEl.classList.add("hidden"); return; }
+    netStatusEl.textContent = text;
+    netStatusEl.classList.remove("hidden", "disconnected");
+    if (cls) netStatusEl.classList.add(cls);
+  }
+
+  function captureSnapshot() {
+    return {
+      board: board.map(row => row.slice()),
+      currentPlayer, gameOver, lastMove,
+      discAge: discAge ? discAge.map(row => row.slice()) : null,
+      moveNumber, totalMoves,
+      variant, vanishLife, vanishMode, powerupMode,
+      powerup: powerup ? { ...powerup } : null,
+      plagueInfo: plagueInfo ? { ...plagueInfo } : null,
+      cascadeFlips: cascadeFlips ? cascadeFlips.slice() : [],
+      blackTime, whiteTime,
+      extraTurn, shrinkLevel,
+      messageText: messageBar.classList.contains("hidden") ? null : messageBar.textContent,
+      messageCls: messageBar.className,
+    };
+  }
+
+  function applySnapshot(s) {
+    board = s.board.map(row => row.slice());
+    currentPlayer = s.currentPlayer;
+    gameOver = s.gameOver;
+    lastMove = s.lastMove;
+    discAge = s.discAge ? s.discAge.map(row => row.slice()) : createAgeGrid();
+    moveNumber = s.moveNumber;
+    totalMoves = s.totalMoves;
+    variant = s.variant;
+    vanishLife = s.vanishLife;
+    vanishMode = s.vanishMode;
+    powerupMode = s.powerupMode;
+    powerup = s.powerup ? { ...s.powerup } : null;
+    plagueInfo = s.plagueInfo ? { ...s.plagueInfo } : null;
+    cascadeFlips = s.cascadeFlips ? s.cascadeFlips.slice() : [];
+    blackTime = s.blackTime;
+    whiteTime = s.whiteTime;
+    extraTurn = s.extraTurn;
+    shrinkLevel = s.shrinkLevel;
+    render();
+    if (s.messageText) {
+      messageBar.textContent = s.messageText;
+      messageBar.className = s.messageCls;
+    } else {
+      hideMessage();
+    }
+    if (gameOver) {
+      // Re-derive end-game message to respect local perspective
+      showLocalEndgameMessage();
+    }
+  }
+
+  function showLocalEndgameMessage() {
+    const scores = variant === "kingofhill" ? countKothScore(board) : countDiscs(board);
+    const b = scores.black, w = scores.white;
+    const myName = myColor === BLACK ? "Black" : "White";
+    const oppName = myColor === BLACK ? "White" : "Black";
+    let msg;
+    if (b === w) msg = `It's a tie! ${b} \u2013 ${w}`;
+    else {
+      const iWon = (myColor === BLACK && b > w) || (myColor === WHITE && w > b);
+      const myScore = myColor === BLACK ? b : w;
+      const oppScore = myColor === BLACK ? w : b;
+      msg = iWon
+        ? `You win! ${myScore} \u2013 ${oppScore} \uD83C\uDF89`
+        : `${oppName} wins. ${oppScore} \u2013 ${myScore}`;
+    }
+    showMessage(msg, "win");
+  }
+
+  function broadcastSnapshot() {
+    if (mode !== "online" || netRole !== "host") return;
+    netSend({ type: "snapshot", state: captureSnapshot() });
+  }
+
+  function handlePeerData(msg) {
+    if (!msg || typeof msg !== "object") return;
+    switch (msg.type) {
+      case "hello":
+        // Guest joined — send current settings + snapshot
+        if (netRole === "host") {
+          netSend({ type: "settings", variant, vanishLife });
+          broadcastSnapshot();
+        }
+        break;
+      case "settings":
+        // Guest: receive settings from host
+        if (netRole === "guest") {
+          hostSettings = { variant: msg.variant, vanishLife: msg.vanishLife };
+          variant = msg.variant;
+          vanishLife = msg.vanishLife;
+          // Sync control UIs for display
+          variantSelect.value = variant;
+          lifespanSelect.value = String(vanishLife);
+          lifespanGroup.style.display = variant === "vanish" ? "" : "none";
+          buildBoardDOM();
+        }
+        break;
+      case "snapshot":
+        if (netRole === "guest") applySnapshot(msg.state);
+        break;
+      case "move":
+        if (netRole === "host" && !gameOver && currentPlayer !== myColor) {
+          // Validate guest's move
+          if (getFlips(board, msg.r, msg.c, currentPlayer).length > 0) {
+            makeMove(msg.r, msg.c);
+            broadcastSnapshot();
+          }
+        }
+        break;
+      case "steal":
+        if (netRole === "host" && variant === "thieves" && !gameOver && currentPlayer !== myColor) {
+          const targets = getStealTargets(board, currentPlayer);
+          if (targets.some(([sr, sc]) => sr === msg.r && sc === msg.c)) {
+            makeSteal(msg.r, msg.c);
+            broadcastSnapshot();
+          }
+        }
+        break;
+      case "newgame-request":
+        if (netRole === "host") startGame();
+        break;
+      case "chat":
+        // Future use
+        break;
+    }
+  }
+
+  function setupConnection(c) {
+    conn = c;
+    conn.on("open", () => {
+      netStatus("Connected to opponent", "");
+      closeLobby();
+      if (netRole === "guest") {
+        netSend({ type: "hello" });
+      } else {
+        // Host: send settings and start
+        mode = "online";
+        startGame(); // will broadcast settings + snapshot
+      }
+    });
+    conn.on("data", handlePeerData);
+    conn.on("close", () => {
+      netStatus("Opponent disconnected", "disconnected");
+      gameOver = true;
+      stopAllTimers();
+      render();
+    });
+    conn.on("error", (err) => {
+      console.error("conn error", err);
+      netStatus("Connection error", "disconnected");
+    });
+  }
+
+  function startHost() {
+    if (typeof Peer === "undefined") {
+      lobbyHostStatus.textContent = "PeerJS failed to load. Check your internet.";
+      lobbyHostStatus.className = "lobby-status error";
+      return;
+    }
+    const code = genRoomCode();
+    lobbyHostIdEl.textContent = "connecting\u2026";
+    lobbyHostStatus.textContent = "Registering room\u2026";
+    lobbyHostStatus.className = "lobby-status";
+    try {
+      if (peer) { try { peer.destroy(); } catch(e){} }
+      peer = new Peer(code);
+    } catch (e) {
+      lobbyHostStatus.textContent = "Failed to create peer: " + e.message;
+      lobbyHostStatus.className = "lobby-status error";
+      return;
+    }
+    peer.on("open", (id) => {
+      lobbyHostIdEl.textContent = id;
+      lobbyHostStatus.textContent = "Waiting for opponent to join\u2026";
+      lobbyHostStatus.className = "lobby-status success";
+    });
+    peer.on("connection", (c) => {
+      netRole = "host";
+      myColor = BLACK;
+      mode = "online";
+      modeSelect.value = "online";
+      setupConnection(c);
+    });
+    peer.on("error", (err) => {
+      console.error("peer error", err);
+      if (err.type === "unavailable-id") {
+        lobbyHostStatus.textContent = "Room code taken. Retrying\u2026";
+        lobbyHostStatus.className = "lobby-status";
+        setTimeout(startHost, 300);
+      } else if (err.type === "network" || err.type === "server-error" || err.type === "socket-error") {
+        lobbyHostStatus.textContent = "Network error: " + (err.message || err.type);
+        lobbyHostStatus.className = "lobby-status error";
+      } else {
+        lobbyHostStatus.textContent = "Error: " + (err.message || err.type);
+        lobbyHostStatus.className = "lobby-status error";
+      }
+    });
+  }
+
+  function startJoin(roomCode) {
+    if (typeof Peer === "undefined") {
+      lobbyJoinStatus.textContent = "PeerJS failed to load. Check your internet.";
+      lobbyJoinStatus.className = "lobby-status error";
+      return;
+    }
+    lobbyJoinStatus.textContent = "Connecting\u2026";
+    lobbyJoinStatus.className = "lobby-status";
+    try {
+      if (peer) { try { peer.destroy(); } catch(e){} }
+      peer = new Peer();
+    } catch (e) {
+      lobbyJoinStatus.textContent = "Failed: " + e.message;
+      lobbyJoinStatus.className = "lobby-status error";
+      return;
+    }
+    peer.on("open", () => {
+      const c = peer.connect(roomCode, { reliable: true });
+      netRole = "guest";
+      myColor = WHITE;
+      mode = "online";
+      modeSelect.value = "online";
+      setupConnection(c);
+    });
+    peer.on("error", (err) => {
+      console.error("peer error", err);
+      let msg = err.message || err.type;
+      if (err.type === "peer-unavailable") msg = "Room not found. Check the code.";
+      lobbyJoinStatus.textContent = msg;
+      lobbyJoinStatus.className = "lobby-status error";
+    });
+  }
+
+  function tearDownNet() {
+    if (conn) { try { conn.close(); } catch(e){} conn = null; }
+    if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+    netRole = null;
+    myColor = BLACK;
+    netStatus("", "");
+  }
+
+  function openLobby() {
+    tearDownNet();
+    lobbyOverlay.classList.remove("hidden");
+    lobbyIntro.classList.remove("hidden");
+    lobbyHost.classList.add("hidden");
+    lobbyJoin.classList.add("hidden");
+    lobbyHostStatus.textContent = "";
+    lobbyJoinStatus.textContent = "";
+    lobbyJoinInput.value = "";
+  }
+  function closeLobby() {
+    lobbyOverlay.classList.add("hidden");
+  }
+
+  lobbyHostBtn.addEventListener("click", () => {
+    lobbyIntro.classList.add("hidden");
+    lobbyHost.classList.remove("hidden");
+    startHost();
+  });
+  lobbyJoinBtn.addEventListener("click", () => {
+    lobbyIntro.classList.add("hidden");
+    lobbyJoin.classList.remove("hidden");
+    setTimeout(() => lobbyJoinInput.focus(), 50);
+  });
+  lobbyCancelBtn.addEventListener("click", () => {
+    closeLobby();
+    modeSelect.value = "ai";
+    mode = "ai";
+    difficultyGroup.style.display = "";
+    tearDownNet();
+    startGame();
+  });
+  lobbyHostBack.addEventListener("click", () => {
+    tearDownNet();
+    openLobby();
+  });
+  lobbyJoinBack.addEventListener("click", () => {
+    tearDownNet();
+    openLobby();
+  });
+  lobbyJoinSubmit.addEventListener("click", () => {
+    const code = lobbyJoinInput.value.trim();
+    if (!code) return;
+    startJoin(code);
+  });
+  lobbyJoinInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") lobbyJoinSubmit.click();
+  });
+  lobbyCopyBtn.addEventListener("click", () => {
+    const txt = lobbyHostIdEl.textContent;
+    if (!txt || txt === "connecting\u2026") return;
+    navigator.clipboard?.writeText(txt).then(
+      () => { lobbyCopyBtn.textContent = "Copied!"; setTimeout(() => lobbyCopyBtn.textContent = "Copy", 1200); },
+      () => { lobbyCopyBtn.textContent = "Copy failed"; }
+    );
+  });
 
 
   // === Event Listeners ===
 
-  newGameBtn.addEventListener("click", startGame);
+  function handleNewGameClick() {
+    if (mode === "online") {
+      if (netRole === "guest") {
+        netSend({ type: "newgame-request" });
+        showMessage("Requested new game from host\u2026", "pass");
+      } else if (netRole === "host") {
+        startGame();
+      } else {
+        openLobby();
+      }
+      return;
+    }
+    startGame();
+  }
+
+  newGameBtn.addEventListener("click", handleNewGameClick);
   modeSelect.addEventListener("change", () => {
-    difficultyGroup.style.display = modeSelect.value === "ai" ? "" : "none";
+    const v = modeSelect.value;
+    difficultyGroup.style.display = v === "ai" ? "" : "none";
+    if (v === "online") {
+      openLobby();
+    } else {
+      tearDownNet();
+      startGame();
+    }
+  });
+  difficultySelect.addEventListener("change", () => {
+    if (mode === "online") return;
     startGame();
   });
-  difficultySelect.addEventListener("change", startGame);
   variantSelect.addEventListener("change", () => {
     lifespanGroup.style.display = variantSelect.value === "vanish" ? "" : "none";
+    if (mode === "online" && netRole === "guest") {
+      // Guest can't change variant — revert
+      variantSelect.value = variant;
+      lifespanGroup.style.display = variant === "vanish" ? "" : "none";
+      return;
+    }
     startGame();
   });
-  lifespanSelect.addEventListener("change", startGame);
+  lifespanSelect.addEventListener("change", () => {
+    if (mode === "online" && netRole === "guest") {
+      lifespanSelect.value = String(vanishLife);
+      return;
+    }
+    startGame();
+  });
 
   // Init
   loadTheme();
