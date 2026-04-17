@@ -118,6 +118,80 @@
   --title-spacing: 0.15em;
 }
 
+/* ===== Shrek Theme ===== */
+
+[data-theme="shrek"] {
+  --board-bg: #3b5a1e;
+  --board-border: #2a4010;
+  --cell-border: #4a6b2a;
+  --bg: #1a2e0a;
+  --surface: #2a3f15;
+  --text: #e8e0c8;
+  --accent: #7cc832;
+  --black-disc: #3d2b1a;
+  --white-disc: #f5e6c8;
+  --valid-hint: rgba(124, 200, 50, 0.35);
+  --font-family: 'Boogaloo', 'Comic Sans MS', cursive, sans-serif;
+  --disc-radius: 50%;
+  --cell-radius: 3px;
+  --board-radius: 14px;
+  --board-wrapper-radius: 16px;
+  --select-border: #5a8030;
+  --label-color: #a0c070;
+  --turn-color: #c8daa0;
+  --active-turn-bg: rgba(124, 200, 50, 0.15);
+  --btn-color: #1a2e0a;
+  --win-bg: rgba(124, 200, 50, 0.2);
+  --pass-bg: rgba(200, 160, 60, 0.2);
+  --pass-color: #daa520;
+  --board-shadow: 0 6px 24px rgba(30, 50, 10, 0.7), inset 0 0 40px rgba(0, 0, 0, 0.08);
+  --black-disc-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(30, 50, 10, 0.5);
+  --white-disc-shadow: inset 0 -3px 6px rgba(100, 60, 20, 0.15), 0 2px 8px rgba(30, 50, 10, 0.4);
+  --black-icon-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(30, 50, 10, 0.5);
+  --white-icon-shadow: inset 0 -2px 4px rgba(100, 60, 20, 0.15), 0 1px 4px rgba(30, 50, 10, 0.4);
+  --cell-gap: 2px;
+  --disc-size: 78%;
+  --title-weight: 400;
+  --title-spacing: 0.03em;
+}
+
+/* ===== Cat in the Hat Theme ===== */
+
+[data-theme="cat"] {
+  --board-bg: #ffffff;
+  --board-border: #d81e1e;
+  --cell-border: #e8b3b3;
+  --bg: #fff8f0;
+  --surface: #ffeaea;
+  --text: #1a1a1a;
+  --accent: #d81e1e;
+  --black-disc: #1a1a1a;
+  --white-disc: #ffffff;
+  --valid-hint: rgba(216, 30, 30, 0.25);
+  --font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif;
+  --disc-radius: 50%;
+  --cell-radius: 0px;
+  --board-radius: 8px;
+  --board-wrapper-radius: 12px;
+  --select-border: #d81e1e;
+  --label-color: #d81e1e;
+  --turn-color: #d81e1e;
+  --active-turn-bg: rgba(216, 30, 30, 0.12);
+  --btn-color: #ffffff;
+  --win-bg: rgba(216, 30, 30, 0.15);
+  --pass-bg: rgba(255, 200, 40, 0.2);
+  --pass-color: #c89020;
+  --board-shadow: 0 6px 20px rgba(216, 30, 30, 0.3), 0 0 0 4px #1a1a1a;
+  --black-disc-shadow: inset 0 -3px 6px rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.5);
+  --white-disc-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(216, 30, 30, 0.4);
+  --black-icon-shadow: inset 0 -2px 4px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --white-icon-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(216, 30, 30, 0.4);
+  --cell-gap: 2px;
+  --disc-size: 78%;
+  --title-weight: 400;
+  --title-spacing: 0.05em;
+}
+
 body {
   font-family: var(--font-family);
   background: var(--bg);
@@ -1064,4 +1138,206 @@ select:focus {
 }
 [data-theme="futuristic"] .lobby-card button {
   background: linear-gradient(135deg, #3af, #63f);
+}
+
+/* Shrek theme extras */
+[data-theme="shrek"] body,
+[data-theme="shrek"] {
+  background: linear-gradient(180deg, #1a2e0a 0%, #0f1f06 40%, #1a1508 100%);
+}
+[data-theme="shrek"] h1 {
+  color: #7cc832;
+  text-shadow: 2px 3px 0 #2a4010, 0 0 20px rgba(124, 200, 50, 0.3);
+}
+[data-theme="shrek"] #board-wrapper {
+  background: radial-gradient(ellipse at center, #4a6b2a 0%, #2a4010 70%);
+  border: 3px solid #5a7a30;
+  box-shadow: 0 6px 24px rgba(30, 50, 10, 0.7), 0 0 60px rgba(80, 140, 30, 0.12);
+}
+[data-theme="shrek"] #board {
+  background: repeating-conic-gradient(#3b5a1e 0% 25%, #35521a 25% 50%) 0 0 / calc(100% / 4) calc(100% / 4);
+}
+[data-theme="shrek"] .cell {
+  border-color: #4a6b2a;
+}
+[data-theme="shrek"] .cell:hover {
+  background: rgba(124, 200, 50, 0.18);
+}
+[data-theme="shrek"] .disc.black {
+  background: radial-gradient(circle at 35% 35%, #5c3d1e, #3d2b1a 70%);
+}
+[data-theme="shrek"] .disc.white {
+  background: radial-gradient(circle at 35% 35%, #fff8e8, #f5e6c8 70%);
+}
+[data-theme="shrek"] button#new-game-btn {
+  background: linear-gradient(135deg, #7cc832, #5a9a20);
+  border: 2px solid #4a7a18;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+[data-theme="shrek"] button#new-game-btn:hover {
+  background: linear-gradient(135deg, #8dd83e, #6ab828);
+  box-shadow: 0 0 16px rgba(124, 200, 50, 0.4);
+}
+[data-theme="shrek"] select {
+  background: #2a3f15;
+  border-color: #5a8030;
+  color: #e8e0c8;
+}
+[data-theme="shrek"] .score-card {
+  border-color: #4a6b2a;
+}
+[data-theme="shrek"] #message-bar {
+  border-color: #5a8030;
+}
+[data-theme="shrek"] .lobby-card {
+  background: rgba(42, 63, 21, 0.97);
+  color: #e8e0c8;
+  border: 2px solid #5a8030;
+  box-shadow: 0 20px 60px rgba(20, 40, 5, 0.7), 0 0 40px rgba(80, 140, 30, 0.1);
+}
+[data-theme="shrek"] .lobby-card button {
+  background: linear-gradient(135deg, #7cc832, #5a9a20);
+  border: 1px solid #4a7a18;
+}
+[data-theme="shrek"] .peer-id-row code {
+  background: rgba(0, 0, 0, 0.25);
+  color: #c8daa0;
+}
+[data-theme="shrek"] #lobby-join-input {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: #5a8030;
+  color: #e8e0c8;
+}
+
+/* Cat in the Hat theme extras */
+[data-theme="cat"] body,
+[data-theme="cat"] {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #fff8f0 0px,
+      #fff8f0 40px,
+      #ffe0e0 40px,
+      #ffe0e0 80px
+    );
+}
+[data-theme="cat"] h1 {
+  color: #d81e1e;
+  text-shadow: 3px 3px 0 #1a1a1a, 6px 6px 0 rgba(216, 30, 30, 0.2);
+  font-size: 2.6rem;
+}
+[data-theme="cat"] h1::before { content: "🎩 "; }
+[data-theme="cat"] h1::after  { content: " 🐱"; }
+[data-theme="cat"] #board-wrapper {
+  background: #ffffff;
+  border: 4px solid #1a1a1a;
+  box-shadow: 0 6px 20px rgba(216, 30, 30, 0.3), 8px 8px 0 #1a1a1a;
+}
+[data-theme="cat"] #board {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      #ffffff 0,
+      #ffffff calc(100% / 8),
+      #ffe5e5 calc(100% / 8),
+      #ffe5e5 calc(200% / 8)
+    );
+}
+[data-theme="cat"] .cell {
+  border-color: rgba(216, 30, 30, 0.25);
+}
+[data-theme="cat"] .cell:hover {
+  background: rgba(216, 30, 30, 0.1);
+}
+[data-theme="cat"] .disc.black {
+  background: radial-gradient(circle at 35% 35%, #3a3a3a, #000 70%);
+}
+[data-theme="cat"] .disc.white {
+  background: radial-gradient(circle at 35% 35%, #fff, #fff 60%, #ffcccc 100%);
+  border: 2px solid #d81e1e;
+}
+[data-theme="cat"] .disc-icon.black {
+  background: radial-gradient(circle at 35% 35%, #3a3a3a, #000 70%);
+}
+[data-theme="cat"] .disc-icon.white {
+  background: #fff;
+  border: 2px solid #d81e1e;
+}
+[data-theme="cat"] button#new-game-btn {
+  background: #d81e1e;
+  color: #fff;
+  border: 3px solid #1a1a1a;
+  text-shadow: 1px 1px 0 #1a1a1a;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+[data-theme="cat"] button#new-game-btn:hover {
+  background: #ff3030;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+[data-theme="cat"] select {
+  background: #ffffff;
+  border: 2px solid #d81e1e;
+  color: #1a1a1a;
+  font-weight: normal;
+}
+[data-theme="cat"] label {
+  color: #d81e1e;
+  font-weight: normal;
+}
+[data-theme="cat"] .score-card {
+  background: #ffffff;
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 #d81e1e;
+}
+[data-theme="cat"] #scoreboard {
+  background: transparent;
+}
+[data-theme="cat"] #turn-indicator {
+  color: #1a1a1a;
+}
+[data-theme="cat"] #message-bar {
+  background: #fff;
+  border: 3px solid #d81e1e;
+  color: #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+[data-theme="cat"] .valid::before {
+  background: rgba(216, 30, 30, 0.45);
+}
+[data-theme="cat"] .lobby-card {
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 4px solid #1a1a1a;
+  box-shadow: 8px 8px 0 #d81e1e;
+  border-radius: 8px;
+}
+[data-theme="cat"] .lobby-card h2 {
+  color: #d81e1e;
+  text-shadow: 2px 2px 0 #1a1a1a;
+}
+[data-theme="cat"] .lobby-card button {
+  background: #d81e1e;
+  color: #fff;
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+[data-theme="cat"] .lobby-card button:hover {
+  background: #ff3030;
+}
+[data-theme="cat"] .lobby-card .lobby-link {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  color: #888;
+}
+[data-theme="cat"] .peer-id-row code {
+  background: #fff0f0;
+  color: #1a1a1a;
+  border: 2px dashed #d81e1e;
+}
+[data-theme="cat"] #lobby-join-input {
+  background: #fff;
+  border: 2px solid #d81e1e;
+  color: #1a1a1a;
 }
