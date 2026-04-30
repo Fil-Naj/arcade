@@ -6,16 +6,18 @@
   const CELL = 18;    // px per cell
   const TICK = 110;   // ms between moves
 
-  let canvas, ctx, infoEl, scoreEl, snake, dir, pendingDir, food, alive, score, timer, mount;
+  let canvas, ctx, infoEl, scoreEl, bestEl, snake, dir, pendingDir, food, alive, score, best, timer, mount;
 
   function init(m) {
     mount = m;
+    best = parseInt(localStorage.getItem("arcade-snake-best") || "0", 10) || 0;
     const wrap = document.createElement("div");
     wrap.className = "mini-game";
     wrap.innerHTML = `
       <h2>SNAKE</h2>
       <div class="hud">
         <span>SCORE<strong id="snake-score">0</strong></span>
+        <span>BEST<strong id="snake-best">${best}</strong></span>
       </div>
       <canvas id="snake-canvas" width="${SIZE*CELL}" height="${SIZE*CELL}"></canvas>
       <div class="mg-info" id="snake-info">Press any arrow key to start</div>
@@ -27,6 +29,7 @@
     ctx = canvas.getContext("2d");
     infoEl = document.getElementById("snake-info");
     scoreEl = document.getElementById("snake-score");
+    bestEl = document.getElementById("snake-best");
     document.getElementById("snake-restart").addEventListener("click", reset);
     window.addEventListener("keydown", onKey);
     attachTouch();
@@ -111,6 +114,7 @@
     if (head.x === food.x && head.y === food.y) {
       score += 10;
       scoreEl.textContent = String(score);
+      if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem("arcade-snake-best", String(best)); }
       placeFood();
     } else {
       snake.pop();

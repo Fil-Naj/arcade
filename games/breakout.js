@@ -6,14 +6,17 @@
 
   const ROWS = 5, COLS = 10, BW = 50, BH = 16, BPAD = 4, BTOP = 40;
   const BRICK_COLORS = ["#ff3b6b", "#ff9a3b", "#ffd641", "#7cff4f", "#00f0ff"];
+  let best = 0, bestEl;
 
   function init(mount) {
+    best = parseInt(localStorage.getItem("arcade-breakout-best") || "0", 10) || 0;
     const wrap = document.createElement("div");
     wrap.className = "mini-game";
     wrap.innerHTML = `
       <h2>BREAKOUT</h2>
       <div class="hud">
         <span>SCORE<strong id="bo-score">0</strong></span>
+        <span>BEST<strong id="bo-best">${best}</strong></span>
         <span>LIVES<strong id="bo-lives">3</strong></span>
       </div>
       <canvas id="bo-canvas" width="${W}" height="${H}"></canvas>
@@ -26,6 +29,7 @@
     ctx = canvas.getContext("2d");
     infoEl = document.getElementById("bo-info");
     scoreEl = document.getElementById("bo-score");
+    bestEl = document.getElementById("bo-best");
     livesEl = document.getElementById("bo-lives");
     document.getElementById("bo-restart").addEventListener("click", reset);
     window.addEventListener("keydown", onKey);
@@ -68,6 +72,7 @@
   function updateHud() {
     scoreEl.textContent = score;
     livesEl.textContent = lives;
+    if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem("arcade-breakout-best", String(best)); }
   }
 
   function onKey(e) {

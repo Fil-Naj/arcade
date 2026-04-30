@@ -3,9 +3,11 @@
   "use strict";
   const ROWS = 10, COLS = 10, MINES = 15;
   let grid, revealed, flagged, started, dead, won, remaining, timer, elapsed;
-  let gridEl, flagEl, timeEl, infoEl;
+  let gridEl, flagEl, timeEl, infoEl, bestEl;
+  let bestTime = 0;
 
   function init(mount) {
+    bestTime = parseInt(localStorage.getItem("arcade-ms-best") || "0", 10) || 0;
     const wrap = document.createElement("div");
     wrap.className = "mini-game";
     wrap.innerHTML = `
@@ -13,6 +15,7 @@
       <div class="hud">
         <span>MINES<strong id="ms-flag">${MINES}</strong></span>
         <span>TIME<strong id="ms-time">0</strong></span>
+        <span>BEST<strong id="ms-best">${bestTime ? bestTime + "s" : "--"}</strong></span>
       </div>
       <div id="ms-grid" style="
         display:grid;grid-template-columns:repeat(${COLS},30px);gap:2px;
@@ -24,6 +27,7 @@
     gridEl = document.getElementById("ms-grid");
     flagEl = document.getElementById("ms-flag");
     timeEl = document.getElementById("ms-time");
+    bestEl = document.getElementById("ms-best");
     infoEl = document.getElementById("ms-info");
     document.getElementById("ms-restart").addEventListener("click", reset);
     gridEl.addEventListener("contextmenu", e => e.preventDefault());
@@ -134,6 +138,11 @@
     if (unrevealed === MINES) {
       won = true;
       clearInterval(timer);
+      if (!bestTime || elapsed < bestTime) {
+        bestTime = elapsed;
+        bestEl.textContent = bestTime + "s";
+        localStorage.setItem("arcade-ms-best", String(bestTime));
+      }
       infoEl.textContent = `🏆 YOU WIN in ${elapsed}s!`;
     }
   }
