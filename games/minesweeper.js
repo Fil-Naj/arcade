@@ -14,7 +14,18 @@
 
   let ROWS, COLS, MINES;
   let grid, revealed, flagged, started, dead, won, remaining, timer, elapsed, timeLimit;
-  let gridEl, flagEl, timeEl, timeLabelEl, infoEl, diffEl, timeLimitEl, customEl, rowsEl, colsEl, minesEl;
+  let gridEl, flagEl, timeEl, timeLabelEl, infoEl, bestEl, diffEl, timeLimitEl, customEl, rowsEl, colsEl, minesEl;
+  let bestTime = 0;
+
+  function getBestKey() {
+    const diff = diffEl ? diffEl.value : "medium";
+    return "arcade-ms-best-" + diff;
+  }
+
+  function loadBest() {
+    bestTime = parseInt(localStorage.getItem(getBestKey()) || "0", 10) || 0;
+    if (bestEl) bestEl.textContent = bestTime ? bestTime + "s" : "--";
+  }
 
   function init(mount) {
     const wrap = document.createElement("div");
@@ -48,6 +59,7 @@
       <div class="hud">
         <span>💣<strong id="ms-flag">15</strong></span>
         <span><span id="ms-time-label">TIME</span><strong id="ms-time">0</strong></span>
+        <span>BEST<strong id="ms-best">--</strong></span>
       </div>
       <div id="ms-grid" style="display:grid;gap:2px;padding:8px;background:#222;border:3px solid #9aa;border-radius:4px;overflow:auto;max-width:100%;"></div>
       <div class="mg-info" id="ms-info">Click to reveal · Right-click / long-press to flag</div>
@@ -58,6 +70,7 @@
     flagEl      = document.getElementById("ms-flag");
     timeEl      = document.getElementById("ms-time");
     timeLabelEl = document.getElementById("ms-time-label");
+    bestEl      = document.getElementById("ms-best");
     infoEl      = document.getElementById("ms-info");
     diffEl      = document.getElementById("ms-diff");
     timeLimitEl = document.getElementById("ms-timelimit");
@@ -68,10 +81,12 @@
 
     diffEl.addEventListener("change", () => {
       customEl.style.display = diffEl.value === "custom" ? "flex" : "none";
+      loadBest();
     });
 
     document.getElementById("ms-restart").addEventListener("click", reset);
     gridEl.addEventListener("contextmenu", e => e.preventDefault());
+    loadBest();
     reset();
   }
 
@@ -216,6 +231,11 @@
       won = true;
       clearInterval(timer);
       const timeUsed = timeLimit > 0 ? (timeLimit - elapsed) : elapsed;
+      if (!bestTime || timeUsed < bestTime) {
+        bestTime = timeUsed;
+        bestEl.textContent = bestTime + "s";
+        localStorage.setItem(getBestKey(), String(bestTime));
+      }
       infoEl.textContent = `🏆 YOU WIN in ${timeUsed}s!`;
     }
   }
