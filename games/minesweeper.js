@@ -1,55 +1,120 @@
 // Minesweeper - click to reveal, right-click to flag
 (function () {
   "use strict";
-  const ROWS = 10, COLS = 10, MINES = 15;
-  let grid, revealed, flagged, started, dead, won, remaining, timer, elapsed;
-  let gridEl, flagEl, timeEl, infoEl;
+
+  const PRESETS = {
+    easy:   { rows: 9,  cols: 9,  mines: 10 },
+    medium: { rows: 10, cols: 10, mines: 15 },
+    hard:   { rows: 16, cols: 16, mines: 40 },
+    expert: { rows: 16, cols: 30, mines: 99 },
+  };
+
+  const SEL_STYLE = "margin-left:6px;font-family:'Press Start 2P',monospace;font-size:0.6rem;background:#111;color:#fff;border:1px solid #00f0ff;padding:3px;";
+  const INP_STYLE = SEL_STYLE + "width:48px;";
+
+  let ROWS, COLS, MINES;
+  let grid, revealed, flagged, started, dead, won, remaining, timer, elapsed, timeLimit;
+  let gridEl, flagEl, timeEl, timeLabelEl, infoEl, diffEl, timeLimitEl, customEl, rowsEl, colsEl, minesEl;
 
   function init(mount) {
     const wrap = document.createElement("div");
     wrap.className = "mini-game";
     wrap.innerHTML = `
       <h2>MINESWEEPER</h2>
-      <div class="hud">
-        <span>MINES<strong id="ms-flag">${MINES}</strong></span>
-        <span>TIME<strong id="ms-time">0</strong></span>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-family:'Press Start 2P',monospace;font-size:0.6rem;color:#00f0ff;margin-bottom:4px;">
+        <label>DIFFICULTY
+          <select id="ms-diff" style="${SEL_STYLE}">
+            <option value="easy">Easy (9×9, 10💣)</option>
+            <option value="medium" selected>Medium (10×10, 15💣)</option>
+            <option value="hard">Hard (16×16, 40💣)</option>
+            <option value="expert">Expert (16×30, 99💣)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </label>
+        <label>TIME LIMIT
+          <select id="ms-timelimit" style="${SEL_STYLE}">
+            <option value="0">None</option>
+            <option value="60">60s</option>
+            <option value="120">120s</option>
+            <option value="300">300s</option>
+          </select>
+        </label>
       </div>
-      <div id="ms-grid" style="
-        display:grid;grid-template-columns:repeat(${COLS},30px);gap:2px;
-        padding:8px;background:#222;border:3px solid #9aa;border-radius:4px;"></div>
+      <div id="ms-custom" style="display:none;flex-wrap:wrap;gap:10px;justify-content:center;font-family:'Press Start 2P',monospace;font-size:0.6rem;color:#00f0ff;margin-bottom:4px;">
+        <label>ROWS<input type="number" id="ms-rows" min="5" max="24" value="10" style="${INP_STYLE}"></label>
+        <label>COLS<input type="number" id="ms-cols" min="5" max="30" value="10" style="${INP_STYLE}"></label>
+        <label>MINES<input type="number" id="ms-mines" min="1" max="500" value="15" style="${INP_STYLE}"></label>
+      </div>
+      <div class="hud">
+        <span>💣<strong id="ms-flag">15</strong></span>
+        <span><span id="ms-time-label">TIME</span><strong id="ms-time">0</strong></span>
+      </div>
+      <div id="ms-grid" style="display:grid;gap:2px;padding:8px;background:#222;border:3px solid #9aa;border-radius:4px;overflow:auto;max-width:100%;"></div>
       <div class="mg-info" id="ms-info">Click to reveal · Right-click / long-press to flag</div>
       <button class="mg-btn" id="ms-restart">New Game</button>
     `;
     mount.appendChild(wrap);
-    gridEl = document.getElementById("ms-grid");
-    flagEl = document.getElementById("ms-flag");
-    timeEl = document.getElementById("ms-time");
-    infoEl = document.getElementById("ms-info");
+    gridEl      = document.getElementById("ms-grid");
+    flagEl      = document.getElementById("ms-flag");
+    timeEl      = document.getElementById("ms-time");
+    timeLabelEl = document.getElementById("ms-time-label");
+    infoEl      = document.getElementById("ms-info");
+    diffEl      = document.getElementById("ms-diff");
+    timeLimitEl = document.getElementById("ms-timelimit");
+    customEl    = document.getElementById("ms-custom");
+    rowsEl      = document.getElementById("ms-rows");
+    colsEl      = document.getElementById("ms-cols");
+    minesEl     = document.getElementById("ms-mines");
+
+    diffEl.addEventListener("change", () => {
+      customEl.style.display = diffEl.value === "custom" ? "flex" : "none";
+    });
+
     document.getElementById("ms-restart").addEventListener("click", reset);
     gridEl.addEventListener("contextmenu", e => e.preventDefault());
     reset();
   }
 
+  function getSettings() {
+    timeLimit = parseInt(timeLimitEl.value, 10);
+    const diff = diffEl.value;
+    if (diff === "custom") {
+      const r = Math.max(5, Math.min(24, parseInt(rowsEl.value, 10) || 10));
+      const c = Math.max(5, Math.min(30, parseInt(colsEl.value, 10) || 10));
+      const maxMines = r * c - 9;
+      const m = Math.max(1, Math.min(maxMines, parseInt(minesEl.value, 10) || 15));
+      ROWS = r; COLS = c; MINES = m;
+    } else {
+      const p = PRESETS[diff] || PRESETS.medium;
+      ROWS = p.rows; COLS = p.cols; MINES = p.mines;
+    }
+  }
+
   function reset() {
     if (timer) { clearInterval(timer); timer = null; }
-    grid = Array.from({length: ROWS}, () => new Array(COLS).fill(0));
+    getSettings();
+    grid     = Array.from({length: ROWS}, () => new Array(COLS).fill(0));
     revealed = Array.from({length: ROWS}, () => new Array(COLS).fill(false));
-    flagged = Array.from({length: ROWS}, () => new Array(COLS).fill(false));
+    flagged  = Array.from({length: ROWS}, () => new Array(COLS).fill(false));
     started = false; dead = false; won = false;
     remaining = MINES;
-    elapsed = 0;
+    elapsed = timeLimit > 0 ? timeLimit : 0;
     flagEl.textContent = remaining;
-    timeEl.textContent = "0";
+    timeEl.textContent = elapsed;
+    timeLabelEl.textContent = timeLimit > 0 ? "⏱ " : "TIME";
     infoEl.textContent = "Click to reveal · Right-click to flag";
     buildGrid();
   }
 
   function buildGrid() {
+    const cellSize = COLS <= 10 ? 30 : COLS <= 16 ? 28 : COLS <= 20 ? 24 : 20;
+    const fontSize = cellSize >= 28 ? "0.7rem" : cellSize >= 24 ? "0.6rem" : "0.55rem";
+    gridEl.style.gridTemplateColumns = `repeat(${COLS},${cellSize}px)`;
     gridEl.innerHTML = "";
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const cell = document.createElement("div");
       cell.className = "ms-cell";
-      cell.style.cssText = "width:30px;height:30px;background:linear-gradient(180deg,#bbb,#888);border:2px outset #ccc;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:0.7rem;cursor:pointer;user-select:none;color:#000;";
+      cell.style.cssText = `width:${cellSize}px;height:${cellSize}px;background:linear-gradient(180deg,#bbb,#888);border:2px outset #ccc;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:${fontSize};cursor:pointer;user-select:none;color:#000;`;
       cell.dataset.r = r; cell.dataset.c = c;
       cell.addEventListener("click", e => { if (e.button === 0) reveal(r, c); });
       cell.addEventListener("contextmenu", e => { e.preventDefault(); flag(r, c); });
@@ -89,7 +154,22 @@
     if (!started) {
       placeMines(r, c);
       started = true;
-      timer = setInterval(() => { elapsed++; timeEl.textContent = elapsed; }, 1000);
+      if (timeLimit > 0) {
+        // countdown timer
+        timer = setInterval(() => {
+          elapsed--;
+          timeEl.textContent = elapsed;
+          if (elapsed <= 0) {
+            clearInterval(timer); timer = null;
+            dead = true;
+            infoEl.textContent = "⏰ TIME'S UP! Game over.";
+            for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) revealed[rr][cc] = true;
+            render();
+          }
+        }, 1000);
+      } else {
+        timer = setInterval(() => { elapsed++; timeEl.textContent = elapsed; }, 1000);
+      }
     }
     floodReveal(r, c);
     render();
@@ -128,13 +208,15 @@
   }
 
   function checkWin() {
+    if (dead) return;
     let unrevealed = 0;
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
       if (!revealed[r][c]) unrevealed++;
     if (unrevealed === MINES) {
       won = true;
       clearInterval(timer);
-      infoEl.textContent = `🏆 YOU WIN in ${elapsed}s!`;
+      const timeUsed = timeLimit > 0 ? (timeLimit - elapsed) : elapsed;
+      infoEl.textContent = `🏆 YOU WIN in ${timeUsed}s!`;
     }
   }
 
